@@ -89,7 +89,7 @@ async def animechat(ctx, *, prompt): # Prompt to ChatGPT pretending to be an ani
         await ctx.respond(arr)
     # Send the response back to the user
 
-@bot.slash_command()
+@bot.slash_command(name="restart", description="Restart ChatGPT bot")
 async def restart(ctx):
     await ctx.respond("Restarting ChatGPT...")
     os.execv(sys.executable, ['python'] + sys.argv)
