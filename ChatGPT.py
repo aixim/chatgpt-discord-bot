@@ -48,7 +48,6 @@ async def chatgpt(ctx):
 )
 async def chat(ctx, *, prompt): # Basic prompt to ChatGPT
     # Call the OpenAI API to get a response
-    print(str(ctx.command) + prompt)
     await ctx.response.defer(ephemeral=False)
     response = await bot.loop.run_in_executor(None, functools.partial(openai.ChatCompletion.create,
                 model="gpt-3.5-turbo",
