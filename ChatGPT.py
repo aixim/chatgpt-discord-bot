@@ -38,7 +38,11 @@ async def on_ready():
 # Define a command
 @bot.slash_command(name="chatgpt", description="Display available commands")
 async def chatgpt(ctx):
-    await ctx.respond("`/chat` - Default ChatGPT prompt\n`/animechat` - ChatGPT prompt but more kawaii\n`/restart` - Restart the bot\n")
+    await ctx.respond("`/chat` - Default ChatGPT prompt\n" +
+                      "`/animechat` - ChatGPT prompt but more kawaii\n" +
+                      "`/scottishchat` - ChatGPT prompt but more scottish\n" +
+                      "`/unhingedchat` - ChatGPT prompt but unhinged\n" +
+                      "`/restart` - Restart the bot\n")
 
 @bot.slash_command(name="chat", description="ChatGPT prompt")
 @discord.option(
@@ -78,6 +82,56 @@ async def animechat(ctx, *, prompt): # Prompt to ChatGPT pretending to be an ani
             messages=[
                 {"role": "user", "content": prompt +
                     " and pretend to be an anime girl and use uwu"},
+            ]
+        ))
+    result = ''
+    result += "**" + prompt + "** - " + ctx.author.mention + "\n"
+    for choice in response.choices:
+        result += choice.message.content
+    partitioned_result = partition_array(result)
+    for arr in partitioned_result:
+        await ctx.respond(arr)
+    # Send the response back to the user
+
+@bot.slash_command(name="scottishchat", description="ChatGPT prompt but more scottish")
+@discord.option(
+    "prompt",
+    str,
+    description="Prompt message"
+)
+async def scottishchat(ctx, *, prompt): # Prompt to ChatGPT pretending to be scottish
+    # Call the OpenAI API to get a response
+    await ctx.response.defer(ephemeral=False)
+    response = await bot.loop.run_in_executor(None, functools.partial(openai.ChatCompletion.create,
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "user", "content": prompt +
+                    " and pretend to be scottish with a very emphasized accent"},
+            ]
+        ))
+    result = ''
+    result += "**" + prompt + "** - " + ctx.author.mention + "\n"
+    for choice in response.choices:
+        result += choice.message.content
+    partitioned_result = partition_array(result)
+    for arr in partitioned_result:
+        await ctx.respond(arr)
+
+    # Send the response back to the user
+@bot.slash_command(name="unhingedchat", description="ChatGPT prompt but unhinged")
+@discord.option(
+    "prompt",
+    str,
+    description="Prompt message"
+)
+async def unhingedchat(ctx, *, prompt): # Prompt to ChatGPT (unhinged)
+    # Call the OpenAI API to get a response
+    await ctx.response.defer(ephemeral=False)
+    response = await bot.loop.run_in_executor(None, functools.partial(openai.ChatCompletion.create,
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "user", "content": prompt +
+                    " and answer in a very unhinged way"},
             ]
         ))
     result = ''
