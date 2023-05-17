@@ -34,6 +34,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 async def on_ready():
    await bot.sync_commands() #sync the command tree
    print("Bot is ready and online")
+   await bot.change_presence(activity=discord.Game(name="Stable Diffusion"))
 
 # Define a command
 @bot.slash_command(name="chatgpt", description="Display available commands")
@@ -42,7 +43,8 @@ async def chatgpt(ctx):
                       "`/animechat` - ChatGPT prompt but more kawaii\n" +
                       "`/scottishchat` - ChatGPT prompt but more scottish\n" +
                       "`/unhingedchat` - ChatGPT prompt but unhinged\n" +
-                      "`/restart` - Restart the bot\n")
+                      "`/restart` - Restart the bot\n" + 
+                      "`/img` - Stable Diffusion image prompt")
 
 @bot.slash_command(name="chat", description="ChatGPT prompt")
 @discord.option(
@@ -143,10 +145,20 @@ async def unhingedchat(ctx, *, prompt): # Prompt to ChatGPT (unhinged)
         await ctx.respond(arr)
     # Send the response back to the user
 
-@bot.slash_command(name="restart", description="Restart ChatGPT bot")
+@bot.slash_command(name="img", description="Stable Diffusion prompt")
+@discord.option(
+    "prompt",
+    str,
+    description="Prompt message"
+)
+async def img(ctx, *, prompt): # Image prompt to Stable Diffusion
+    await ctx.respond("Your prompt: " + prompt + "\nImages not yet supported")
+    # Send the response back to the user
+
+"""@bot.slash_command(name="restart", description="Restart ChatGPT bot")
 async def restart(ctx):
     await ctx.respond("Restarting ChatGPT...")
-    os.execv(sys.executable, ['python'] + sys.argv)
+    os.execv(sys.executable, ['python'] + sys.argv)"""
 
 # Run the bot
 bot.run(os.getenv('DISCORD_BOT_KEY'))
