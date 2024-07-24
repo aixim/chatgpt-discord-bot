@@ -26,12 +26,15 @@ def partition_array(arr): # We split message array into chunks of 2000 for disco
 
 # Set up the OpenAI API key
 openai.api_key = os.getenv('OPEN_API_KEY')
+#openai.api_base = "http://127.0.0.1:5000/v1"
+#openai.api_version = "2023-05-15"
 
 # Create the bot client
 intents = discord.Intents.default()
 intents.guild_messages = True
 intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
+currentModel = "anime"
 
 @bot.event
 async def on_ready():
@@ -62,7 +65,8 @@ async def help(ctx):
                       "`/scottishchat` - ChatGPT prompt but more scottish\n" +
                       "`/unhingedchat` - ChatGPT prompt but unhinged\n" +
                       #"`/restart` - Restart the bot\n" + 
-                      "`/img` - Stable Diffusion image prompt")
+                      "`/img` - Stable Diffusion image prompt\n" +
+                      "`/model` - Change Stable Diffusion model")
 
 @bot.slash_command(name="chat", description="ChatGPT prompt")
 @discord.option(
@@ -151,7 +155,7 @@ async def unhingedchat(ctx, *, prompt): # Prompt to ChatGPT (unhinged)
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "user", "content": prompt +
-                    " and answer in a very unhinged way"},
+                    " and answer in a very unhinged way with caps lock"},
             ]
         ))
     result = ''
@@ -179,7 +183,8 @@ async def img(ctx, *, prompt, negative_prompt=''): # Image prompt to Stable Diff
         for image in response.json()['images']:
             images.append(discord.File(io.BytesIO(base64.b64decode(image)), "image.png"))
         await ctx.respond(files=images)
-    except:
+    except Exception as e:
+        print(e)
         await ctx.respond("Failed to connect to Stable Diffusion")
     # Send the response back to the user
 
@@ -187,6 +192,53 @@ async def img(ctx, *, prompt, negative_prompt=''): # Image prompt to Stable Diff
 async def restart(ctx):
     await ctx.respond("Restarting ChatGPT...")
     os.execv(sys.executable, ['python'] + sys.argv)"""
+    
+@bot.slash_command(name="model", description="Change Stable Diffusion model")
+@discord.option(
+    "model",
+    str,
+    description="Model name"
+)
+async def img(ctx, *, model=''): # Image prompt to Stable Diffusion
+    await ctx.response.defer(ephemeral=False)
+    global currentModel
+    if model == "":
+        await ctx.respond("Current model - `" + currentModel + "`\nAvailable models - `anime`, `realistic`, `fantasy`, `dream`")
+    else:
+        try:
+            if model == "anime":
+                json = '{"sd_model_checkpoint": "meinamix_meinaV11.safetensors"}'
+                response = await bot.loop.run_in_executor(None, functools.partial(requests.post, url="http://127.0.0.1:7860/sdapi/v1/options", data=json))
+                if response.status_code != 200:
+                    raise Exception
+                await ctx.respond("Switched to `anime` model")
+                currentModel = "anime"
+            elif model == "realistic":
+                json = '{"sd_model_checkpoint": "cyberrealistic_v42.safetensors"}'
+                response = await bot.loop.run_in_executor(None, functools.partial(requests.post, url="http://127.0.0.1:7860/sdapi/v1/options", data=json))
+                if response.status_code != 200:
+                    raise Exception
+                await ctx.respond("Switched to `realistic` model")
+                currentModel = "realistic"
+            elif model == "fantasy":
+                json = '{"sd_model_checkpoint": "dreamscapesDragonfireNEWV20_dsDv20.safetensors"}'
+                response = await bot.loop.run_in_executor(None, functools.partial(requests.post, url="http://127.0.0.1:7860/sdapi/v1/options", data=json))
+                if response.status_code != 200:
+                    raise Exception
+                await ctx.respond("Switched to `fantasy` model")
+                currentModel = "fantasy"
+            elif model == "dream":
+                json = '{"sd_model_checkpoint": "dreamshaperXL_v21TurboDPMSDE.ckpt"}'
+                response = await bot.loop.run_in_executor(None, functools.partial(requests.post, url="http://127.0.0.1:7860/sdapi/v1/options", data=json))
+                if response.status_code != 200:
+                    raise Exception
+                await ctx.respond("Switched to `dream` model")
+                currentModel = "dream"
+            else:
+                await ctx.respond("Unknown model specified")
+        except:
+            await ctx.respond("Failed to connect to Stable Diffusion")
+    # Send the response back to the user
 
 # Run the bot
 bot.run(os.getenv('DISCORD_BOT_KEY'))
