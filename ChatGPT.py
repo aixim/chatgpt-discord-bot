@@ -1,6 +1,7 @@
 import discord
 from discord.ext import tasks, commands
-import openai
+from groq import Groq
+#import openai
 import functools
 import os
 from dotenv import load_dotenv
@@ -25,9 +26,13 @@ def partition_array(arr): # We split message array into chunks of 2000 for disco
 
 
 # Set up the OpenAI API key
-openai.api_key = os.getenv('OPEN_API_KEY')
+#openai.api_key = os.getenv('OPEN_API_KEY')
 #openai.api_base = "http://127.0.0.1:5000/v1"
 #openai.api_version = "2023-05-15"
+
+client = Groq(
+    api_key=os.environ.get("GROQ_API_KEY"),
+)
 
 # Create the bot client
 intents = discord.Intents.default()
@@ -77,16 +82,15 @@ async def help(ctx):
 async def chat(ctx, *, prompt): # Basic prompt to ChatGPT
     # Call the OpenAI API to get a response
     await ctx.response.defer(ephemeral=False)
-    response = await bot.loop.run_in_executor(None, functools.partial(openai.ChatCompletion.create,
-                model="gpt-3.5-turbo",
+    response = await bot.loop.run_in_executor(None, functools.partial(client.chat.completions.create,
+                model="llama3-8b-8192",
                 messages=[
                     {"role": "user", "content": prompt},
                 ]
             ))
     result = ''
     result += "**" + prompt + "** - " + ctx.author.mention + "\n"
-    for choice in response.choices:
-        result += choice.message.content
+    result += response.choices[0].message.content
     partitioned_result = partition_array(result)
     for arr in partitioned_result:
         await ctx.respond(arr)
@@ -101,8 +105,8 @@ async def chat(ctx, *, prompt): # Basic prompt to ChatGPT
 async def animechat(ctx, *, prompt): # Prompt to ChatGPT pretending to be an anime girl (I'm not proud of this)
     # Call the OpenAI API to get a response
     await ctx.response.defer(ephemeral=False)
-    response = await bot.loop.run_in_executor(None, functools.partial(openai.ChatCompletion.create,
-            model="gpt-3.5-turbo",
+    response = await bot.loop.run_in_executor(None, functools.partial(client.chat.completions.create,
+            model="llama3-8b-8192",
             messages=[
                 {"role": "user", "content": prompt +
                     " and pretend to be an anime girl and use uwu"},
@@ -110,8 +114,7 @@ async def animechat(ctx, *, prompt): # Prompt to ChatGPT pretending to be an ani
         ))
     result = ''
     result += "**" + prompt + "** - " + ctx.author.mention + "\n"
-    for choice in response.choices:
-        result += choice.message.content
+    result += response.choices[0].message.content
     partitioned_result = partition_array(result)
     for arr in partitioned_result:
         await ctx.respond(arr)
@@ -126,8 +129,8 @@ async def animechat(ctx, *, prompt): # Prompt to ChatGPT pretending to be an ani
 async def scottishchat(ctx, *, prompt): # Prompt to ChatGPT pretending to be scottish
     # Call the OpenAI API to get a response
     await ctx.response.defer(ephemeral=False)
-    response = await bot.loop.run_in_executor(None, functools.partial(openai.ChatCompletion.create,
-            model="gpt-3.5-turbo",
+    response = await bot.loop.run_in_executor(None, functools.partial(client.chat.completions.create,
+            model="llama3-8b-8192",
             messages=[
                 {"role": "user", "content": prompt +
                     " and pretend to be scottish with a very emphasized accent"},
@@ -135,8 +138,7 @@ async def scottishchat(ctx, *, prompt): # Prompt to ChatGPT pretending to be sco
         ))
     result = ''
     result += "**" + prompt + "** - " + ctx.author.mention + "\n"
-    for choice in response.choices:
-        result += choice.message.content
+    result += response.choices[0].message.content
     partitioned_result = partition_array(result)
     for arr in partitioned_result:
         await ctx.respond(arr)
@@ -151,8 +153,8 @@ async def scottishchat(ctx, *, prompt): # Prompt to ChatGPT pretending to be sco
 async def unhingedchat(ctx, *, prompt): # Prompt to ChatGPT (unhinged)
     # Call the OpenAI API to get a response
     await ctx.response.defer(ephemeral=False)
-    response = await bot.loop.run_in_executor(None, functools.partial(openai.ChatCompletion.create,
-            model="gpt-3.5-turbo",
+    response = await bot.loop.run_in_executor(None, functools.partial(client.chat.completions.create,
+            model="llama3-8b-8192",
             messages=[
                 {"role": "user", "content": prompt +
                     " and answer in a very unhinged way with caps lock"},
@@ -160,8 +162,7 @@ async def unhingedchat(ctx, *, prompt): # Prompt to ChatGPT (unhinged)
         ))
     result = ''
     result += "**" + prompt + "** - " + ctx.author.mention + "\n"
-    for choice in response.choices:
-        result += choice.message.content
+    result += response.choices[0].message.content
     partitioned_result = partition_array(result)
     for arr in partitioned_result:
         await ctx.respond(arr)
@@ -173,10 +174,27 @@ async def unhingedchat(ctx, *, prompt): # Prompt to ChatGPT (unhinged)
     str,
     description="Prompt message"
 )
-async def img(ctx, *, prompt, negative_prompt=''): # Image prompt to Stable Diffusion
+@discord.option(
+    "negative_prompt",
+    str,
+    description="Negative prompt (what you don't want to see)"
+)
+@discord.option(
+    "width",
+    str,
+    description="Image width (max 1280 pixels)"
+)
+@discord.option(
+    "height",
+    str,
+    description="Image height (max 720 pixels)"
+)
+async def img(ctx, *, prompt, negative_prompt='', width='512', height='512'): # Image prompt to Stable Diffusion
     await ctx.response.defer(ephemeral=False)
+    if int(width) > 1280: width='512'
+    if int(height) > 720: height='512'
     negative_prompt += ', (worst quality), bad quality, naked, nude, (nsfw)'
-    json = '{"prompt": "' + prompt + '", "steps": 25, "cfg_scale": 7, "width": 512, "height": 512, "negative_prompt": "' + negative_prompt + '", "sampler_name": "DPM++ SDE Karras"}'
+    json = '{"prompt": "' + prompt + '", "steps": 25, "cfg_scale": 7, "width": '+ width +', "height": '+ height +', "negative_prompt": "' + negative_prompt + '", "sampler_name": "DPM++ 3M SDE"}'
     try:
         response = await bot.loop.run_in_executor(None, functools.partial(requests.post, url="http://127.0.0.1:7860/sdapi/v1/txt2img", data=json))
         images = []
@@ -199,7 +217,7 @@ async def restart(ctx):
     str,
     description="Model name"
 )
-async def img(ctx, *, model=''): # Image prompt to Stable Diffusion
+async def model(ctx, *, model=''): # Image prompt to Stable Diffusion
     await ctx.response.defer(ephemeral=False)
     global currentModel
     if model == "":
@@ -228,7 +246,7 @@ async def img(ctx, *, model=''): # Image prompt to Stable Diffusion
                 await ctx.respond("Switched to `fantasy` model")
                 currentModel = "fantasy"
             elif model == "dream":
-                json = '{"sd_model_checkpoint": "dreamshaperXL_v21TurboDPMSDE.ckpt"}'
+                json = '{"sd_model_checkpoint": "dreamshaper_8.safetensors"}'
                 response = await bot.loop.run_in_executor(None, functools.partial(requests.post, url="http://127.0.0.1:7860/sdapi/v1/options", data=json))
                 if response.status_code != 200:
                     raise Exception
